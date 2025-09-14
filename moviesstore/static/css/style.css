@@ -38,3 +38,13 @@
   width: fit-content;
   max-height: 400px;
 }
+vote-box {
+  display: inline-block;
+  padding: 5px;
+  border: 1px solid transparent; /* Default transparent border */
+  border-radius: 4px; /* Optional: adds rounded corners */
+}
+
+.selected-vote {
+  border-color: grey; /* Grey border for selected state */
+}

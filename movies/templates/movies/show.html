@@ -39,6 +39,33 @@
               {{ review.date }}
             </h6>
             <p class="card-text">{{ review.comment }}</p>
+            <div>
+              {% if user.is_authenticated %}
+              <form class="d-inline vote-form" method="post" action="{% url 'movies.vote_review' review_id=review.id %}" onsubmit="handleVote(event, this)">
+                {% csrf_token %}
+                <input type="hidden" name="vote_type" value="upvote">
+                <button type="submit" class="btn btn-sm p-0 text-success" title="Upvote">
+                  <span class="vote-box {% if user in review.upvoted_by.all %} selected-vote {% endif %}">
+                    <i class="fas fa-thumbs-up"></i>
+                  </span>
+                </button>
+              </form>
+              <span id="upvotes-{{ review.id }}">{{ review.upvotes }}</span>
+              <form class="d-inline vote-form" method="post" action="{% url 'movies.vote_review' review_id=review.id %}" onsubmit="handleVote(event, this)">
+                {% csrf_token %}
+                <input type="hidden" name="vote_type" value="downvote">
+                <button type="submit" class="btn btn-sm p-0 text-danger" title="Downvote">
+                  <span class="vote-box {% if user in review.downvoted_by.all %} selected-vote {% endif %}">
+                    <i class="fas fa-thumbs-down"></i>
+                  </span>
+                </button>
+              </form>
+              <span id="downvotes-{{ review.id }}">{{ review.downvotes }}</span>
+              {% else %}
+              <i class="fas fa-thumbs-up text-success"></i> {{ review.upvotes }}
+              <i class="fas fa-thumbs-down text-danger"></i> {{ review.downvotes }}
+              {% endif %}
+            </div>
             {% if user.is_authenticated and user == review.user %}
             <a class="btn btn-primary"
               href="{% url 'movies.edit_review' id=template_data.movie.id review_id=review.id %}">
@@ -88,4 +115,43 @@
     </div>
   </div>
 </div>
+<script>
+    function handleVote(event, form) {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const url = form.action;
+        const reviewId = url.split('/').slice(-3, -2)[0];
+        const voteType = formData.get('vote_type');
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById(`upvotes-${reviewId}`).textContent = data.upvotes;
+            document.getElementById(`downvotes-${reviewId}`).textContent = data.downvotes;
+
+            const upvoteBox = form.closest('div').querySelector('.fa-thumbs-up').parentElement;
+            const downvoteBox = form.closest('div').querySelector('.fa-thumbs-down').parentElement;
+            
+            // Remove the selected class from both buttons first
+            upvoteBox.classList.remove('selected-vote');
+            downvoteBox.classList.remove('selected-vote');
+
+            // Add the selected class to the correct button
+            if (voteType === 'upvote' && data.upvotes > 0) {
+                upvoteBox.classList.add('selected-vote');
+            } else if (voteType === 'downvote' && data.downvotes > 0) {
+                downvoteBox.classList.add('selected-vote');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+</script>
 {% endblock content %}
