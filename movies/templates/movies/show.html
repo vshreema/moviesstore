@@ -39,33 +39,7 @@
               {{ review.date }}
             </h6>
             <p class="card-text">{{ review.comment }}</p>
-            <div>
-              {% if user.is_authenticated %}
-              <form class="d-inline vote-form" method="post" action="{% url 'movies.vote_review' review_id=review.id %}" onsubmit="handleVote(event, this)">
-                {% csrf_token %}
-                <input type="hidden" name="vote_type" value="upvote">
-                <button type="submit" class="btn btn-sm p-0 text-success" title="Upvote">
-                  <span class="vote-box {% if user in review.upvoted_by.all %} selected-vote {% endif %}">
-                    <i class="fas fa-thumbs-up"></i>
-                  </span>
-                </button>
-              </form>
-              <span id="upvotes-{{ review.id }}">{{ review.upvotes }}</span>
-              <form class="d-inline vote-form" method="post" action="{% url 'movies.vote_review' review_id=review.id %}" onsubmit="handleVote(event, this)">
-                {% csrf_token %}
-                <input type="hidden" name="vote_type" value="downvote">
-                <button type="submit" class="btn btn-sm p-0 text-danger" title="Downvote">
-                  <span class="vote-box {% if user in review.downvoted_by.all %} selected-vote {% endif %}">
-                    <i class="fas fa-thumbs-down"></i>
-                  </span>
-                </button>
-              </form>
-              <span id="downvotes-{{ review.id }}">{{ review.downvotes }}</span>
-              {% else %}
-              <i class="fas fa-thumbs-up text-success"></i> {{ review.upvotes }}
-              <i class="fas fa-thumbs-down text-danger"></i> {{ review.downvotes }}
-              {% endif %}
-            </div>
+            
             {% if user.is_authenticated and user == review.user %}
             <a class="btn btn-primary"
               href="{% url 'movies.edit_review' id=template_data.movie.id review_id=review.id %}">
@@ -115,7 +89,7 @@
     </div>
   </div>
 </div>
-<script>
+<!-- <script>
     function handleVote(event, form) {
         event.preventDefault();
         const formData = new FormData(form);
@@ -153,5 +127,5 @@
             console.error('Error:', error);
         });
     }
-</script>
+</script> -->
 {% endblock content %}
