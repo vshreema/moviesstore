@@ -17,10 +17,9 @@ class Review(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    # upvotes = models.IntegerField(default=0)
-    # downvotes = models.IntegerField(default=0)
-    # upvoted_by = models.ManyToManyField(User, related_name='upvoted_reviews', blank=True)
-    # downvoted_by = models.ManyToManyField(User, related_name='downvoted_reviews', blank=True)
+    likes = models.IntegerField(default=0)
+    liked_by = models.ManyToManyField(User, related_name='liked_reviews', blank=True)
+    
     def __str__(self):
         return str(self.id) + ' - ' + self.movie.name
 

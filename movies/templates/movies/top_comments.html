@@ -1,30 +1,103 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<div class="p-3">
-  <div class="container">
-    <div class="row mt-3">
-      <div class="col-md-8 mx-auto mb-3">
-        <h2>Top Comments</h2>
-        <hr />
-        <ul class="list-group">
-          {% for review in template_data.reviews %}
-          <li class="list-group-item pb-3 pt-3">
-            <h5 class="card-title">
-              Review by {{ review.user.username }} on "{{ review.movie.name }}"
-            </h5>
-            <h6 class="card-subtitle mb-2 text-muted">
-              {{ review.date }}
-            </h6>
-            <p class="card-text">{{ review.comment }}</p>
-            <p>
-              <i class="fas fa-thumbs-up text-success"></i> {{ review.upvotes }} &nbsp;
-              <i class="fas fa-thumbs-down text-danger"></i> {{ review.downvotes }}
-            </p>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </div>
+<div class="container mt-4">
+    <h1 class="mb-4">Top Comments</h1>
+    <p class="text-muted mb-4">Comments ranked by number of likes</p>
+    
+    {% if template_data.reviews %}
+        <div class="row">
+            {% for review in template_data.reviews %}
+            <div class="col-md-8 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0">
+                                <strong>{{ review.user.username }}</strong>
+                                <small class="text-muted">on {{ review.movie.name }}</small>
+                            </h6>
+                            <span class="badge bg-primary">{{ review.likes }} likes</span>
+                        </div>
+                        <p class="card-text">{{ review.comment }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ review.date|date:"F d, Y g:i A" }}</small>
+                            <div>
+                                <a href="{% url 'movies.show' review.movie.id %}" class="btn btn-sm btn-outline-primary">
+                                    View Movie
+                                </a>
+                                {% if user.is_authenticated %}
+                                <button class="btn btn-sm btn-outline-success like-btn" 
+                                        data-review-id="{{ review.id }}" 
+                                        data-liked="{% if user in review.liked_by.all %}true{% else %}false{% endif %}">
+                                    <span class="like-text">
+                                        {% if user in review.liked_by.all %}Unlike{% else %}Like{% endif %}
+                                    </span>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <h4>No comments yet!</h4>
+            <p>Be the first to comment on a movie and see it appear here.</p>
+            <a href="{% url 'movies.index' %}" class="btn btn-primary">Browse Movies</a>
+        </div>
+    {% endif %}
 </div>
-{% endblock content %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const likeButtons = document.querySelectorAll('.like-btn');
+    
+    likeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const reviewId = this.dataset.reviewId;
+            const isLiked = this.dataset.liked === 'true';
+            
+            fetch(`/movies/review/${reviewId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Update the like count
+                const badge = this.parentElement.parentElement.querySelector('.badge');
+                badge.textContent = data.likes + ' likes';
+                
+                // Update the button text and state
+                const likeText = this.querySelector('.like-text');
+                likeText.textContent = data.liked ? 'Unlike' : 'Like';
+                this.dataset.liked = data.liked;
+                
+                // Update button appearance
+                if (data.liked) {
+                    this.classList.remove('btn-outline-success');
+                    this.classList.add('btn-success');
+                } else {
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-outline-success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while liking the comment.');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

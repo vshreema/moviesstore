@@ -32,24 +32,42 @@
         <ul class="list-group">
           {% for review in template_data.reviews %}
           <li class="list-group-item pb-3 pt-3">
-            <h5 class="card-title">
-              Review by {{ review.user.username }}
-            </h5>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h5 class="card-title mb-0">
+                Review by {{ review.user.username }}
+              </h5>
+              <span class="badge bg-primary">{{ review.likes }} likes</span>
+            </div>
             <h6 class="card-subtitle mb-2 text-muted">
               {{ review.date }}
             </h6>
             <p class="card-text">{{ review.comment }}</p>
             
-            {% if user.is_authenticated and user == review.user %}
-            <a class="btn btn-primary"
-              href="{% url 'movies.edit_review' id=template_data.movie.id review_id=review.id %}">
-              Edit
-            </a>
-            <a class="btn btn-danger"
-              href="{% url 'movies.delete_review' id=template_data.movie.id review_id=review.id %}">
-              Delete
-            </a>
-            {% endif %}
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                {% if user.is_authenticated and user == review.user %}
+                <a class="btn btn-primary btn-sm"
+                  href="{% url 'movies.edit_review' id=template_data.movie.id review_id=review.id %}">
+                  Edit
+                </a>
+                <a class="btn btn-danger btn-sm"
+                  href="{% url 'movies.delete_review' id=template_data.movie.id review_id=review.id %}">
+                  Delete
+                </a>
+                {% endif %}
+              </div>
+              <div>
+                {% if user.is_authenticated %}
+                <button class="btn btn-sm btn-outline-success like-btn" 
+                        data-review-id="{{ review.id }}" 
+                        data-liked="{% if user in review.liked_by.all %}true{% else %}false{% endif %}">
+                  <span class="like-text">
+                    {% if user in review.liked_by.all %}Unlike{% else %}Like{% endif %}
+                  </span>
+                </button>
+                {% endif %}
+              </div>
+            </div>
           </li>
           {% endfor %}
         </ul>
@@ -89,43 +107,54 @@
     </div>
   </div>
 </div>
-<!-- <script>
-    function handleVote(event, form) {
-        event.preventDefault();
-        const formData = new FormData(form);
-        const url = form.action;
-        const reviewId = url.split('/').slice(-3, -2)[0];
-        const voteType = formData.get('vote_type');
-
-        fetch(url, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById(`upvotes-${reviewId}`).textContent = data.upvotes;
-            document.getElementById(`downvotes-${reviewId}`).textContent = data.downvotes;
-
-            const upvoteBox = form.closest('div').querySelector('.fa-thumbs-up').parentElement;
-            const downvoteBox = form.closest('div').querySelector('.fa-thumbs-down').parentElement;
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const likeButtons = document.querySelectorAll('.like-btn');
+    
+    likeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const reviewId = this.dataset.reviewId;
+            const isLiked = this.dataset.liked === 'true';
             
-            // Remove the selected class from both buttons first
-            upvoteBox.classList.remove('selected-vote');
-            downvoteBox.classList.remove('selected-vote');
-
-            // Add the selected class to the correct button
-            if (voteType === 'upvote' && data.upvotes > 0) {
-                upvoteBox.classList.add('selected-vote');
-            } else if (voteType === 'downvote' && data.downvotes > 0) {
-                downvoteBox.classList.add('selected-vote');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
+            fetch(`/movies/review/${reviewId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Update the like count
+                const badge = this.closest('li').querySelector('.badge');
+                badge.textContent = data.likes + ' likes';
+                
+                // Update the button text and state
+                const likeText = this.querySelector('.like-text');
+                likeText.textContent = data.liked ? 'Unlike' : 'Like';
+                this.dataset.liked = data.liked;
+                
+                // Update button appearance
+                if (data.liked) {
+                    this.classList.remove('btn-outline-success');
+                    this.classList.add('btn-success');
+                } else {
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-outline-success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while liking the comment.');
+            });
         });
-    }
-</script> -->
+    });
+});
+</script>
 {% endblock content %}
