@@ -1,17 +1,23 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review
+from .models import Movie, Review, HiddenMovie
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 # Create your views here.
 def index(request):
     search_term = request.GET.get('search')
     if search_term:
-        movies = Movie.objects.filter(name__icontains=search_term)
+        movies_qs = Movie.objects.filter(name__icontains=search_term)
     else:
-        movies = Movie.objects.all()
+        movies_qs = Movie.objects.all()
+
+    # Exclude hidden movies for logged-in users
+    if request.user.is_authenticated:
+        hidden_ids = HiddenMovie.objects.filter(user=request.user).values_list('movie_id', flat=True)
+        movies_qs = movies_qs.exclude(id__in=hidden_ids)
+
     template_data = {}
     template_data['title'] = 'Movies'
-    template_data['movies'] = movies
+    template_data['movies'] = movies_qs
     return render(request, 'movies/index.html', {'template_data': template_data})
 
 def show(request, id):
@@ -56,6 +62,28 @@ def delete_review(request, id, review_id):
     review = get_object_or_404(Review, id=review_id, user=request.user)
     review.delete()
     return redirect('movies.show', id=id)
+
+@login_required
+def hide_movie(request, id):
+    movie = get_object_or_404(Movie, id=id)
+    HiddenMovie.objects.get_or_create(user=request.user, movie=movie)
+    return redirect('movies.index')
+
+@login_required
+def unhide_movie(request, id):
+    movie = get_object_or_404(Movie, id=id)
+    HiddenMovie.objects.filter(user=request.user, movie=movie).delete()
+    return redirect('movies.hidden')
+
+@login_required
+def hidden_list(request):
+    hidden_entries = HiddenMovie.objects.filter(user=request.user).select_related('movie')
+    movies = [hm.movie for hm in hidden_entries]
+    template_data = {
+        'title': 'Hidden Movies',
+        'movies': movies,
+    }
+    return render(request, 'movies/hidden.html', {'template_data': template_data})
 
 # @login_required
 # def vote_review(request, review_id):

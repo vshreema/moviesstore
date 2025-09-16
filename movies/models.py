@@ -24,3 +24,14 @@ class Review(models.Model):
     def __str__(self):
         return str(self.id) + ' - ' + self.movie.name
 
+class HiddenMovie(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
+    hidden_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'movie')
+
+    def __str__(self):
+        return f"{self.user.username} hidden {self.movie.name}"
+
