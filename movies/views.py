@@ -1,8 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review, HiddenMovie, Petition
+from .models import Movie, Review, HiddenMovie
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .forms import PetitionForm
 # Create your views here.
 def index(request):
     search_term = request.GET.get('search')
