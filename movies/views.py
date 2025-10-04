@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review, HiddenMovie
+from .models import Movie, Review, HiddenMovie, Petition
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from .forms import PetitionForm
 # Create your views here.
 def index(request):
     search_term = request.GET.get('search')
@@ -85,52 +86,36 @@ def hidden_list(request):
     }
     return render(request, 'movies/hidden.html', {'template_data': template_data})
 
-# @login_required
-# def vote_review(request, review_id):
-#     if request.method == 'POST':
-#         review = get_object_or_404(Review, id=review_id)
-#         vote_type = request.POST.get('vote_type')
-#         user = request.user
 
-#         if vote_type == 'upvote':
-#             if user in review.upvoted_by.all():
-#                 # User has already upvoted, so remove the upvote
-#                 review.upvoted_by.remove(user)
-#                 review.upvotes -= 1
-#             elif user in review.downvoted_by.all():
-#                 # User has downvoted, so remove downvote and add an upvote
-#                 review.downvoted_by.remove(user)
-#                 review.downvotes -= 1
-#                 review.upvoted_by.add(user)
-#                 review.upvotes += 1
-#             else:
-#                 # User has not voted, so add a new upvote
-#                 review.upvoted_by.add(user)
-#                 review.upvotes += 1
-#         elif vote_type == 'downvote':
-#             if user in review.downvoted_by.all():
-#                 # User has already downvoted, so remove the downvote
-#                 review.downvoted_by.remove(user)
-#                 review.downvotes -= 1
-#             elif user in review.upvoted_by.all():
-#                 # User has upvoted, so remove upvote and add a downvote
-#                 review.upvoted_by.remove(user)
-#                 review.upvotes -= 1
-#                 review.downvoted_by.add(user)
-#                 review.downvotes += 1
-#             else:
-#                 # User has not voted, so add a new downvote
-#                 review.downvoted_by.add(user)
-#                 review.downvotes += 1
-        
-#         review.save()
-#         return JsonResponse({'upvotes': review.upvotes, 'downvotes': review.downvotes})
-#     return JsonResponse({'error': 'Invalid request'}, status=400)
+@login_required
+def petition_list(request):
+    petitions = Petition.objects.all().order_by('-created_at')
+    template_data = {
+        'title': 'Movie Petitions',
+        'petitions': petitions,
+    }
+    return render(request, 'movies/petition_list.html', {'template_data': template_data})
 
-# def top_comments(request):
-#     top_reviews = Review.objects.all().order_by('-upvotes', 'downvotes')
-#     template_data = {
-#         'title': 'Top Comments',
-#         'reviews': top_reviews
-#     }
-#     return render(request, 'movies/top_comments.html', {'template_data': template_data})
+@login_required
+def create_petition(request):
+    if request.method == 'POST':
+        form = PetitionForm(request.POST)
+        if form.is_valid():
+            petition = form.save(commit=False)
+            petition.created_by = request.user
+            petition.save()
+            return redirect('movies.petition_list')
+    else:
+        form = PetitionForm()
+    template_data = {'title': 'Create a Petition', 'form': form}
+    return render(request, 'movies/create_petition.html', {'template_data': template_data})
+
+@login_required
+def vote_petition(request, petition_id):
+    petition = get_object_or_404(Petition, id=petition_id)
+    if petition.voters.filter(id=request.user.id).exists():
+        # User has already voted, so we can remove the vote (or just do nothing)
+        petition.voters.remove(request.user)
+    else:
+        petition.voters.add(request.user)
+    return redirect('movies.petition_list')

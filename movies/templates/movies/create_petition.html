@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>{{ template_data.title }}</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_movie_title" class="form-label">Movie Title</label>
+                            {{ template_data.form.movie_title }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_reason" class="form-label">Reason</label>
+                            {{ template_data.form.reason }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Petition</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
