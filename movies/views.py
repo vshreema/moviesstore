@@ -87,35 +87,4 @@ def hidden_list(request):
     return render(request, 'movies/hidden.html', {'template_data': template_data})
 
 
-@login_required
-def petition_list(request):
-    petitions = Petition.objects.all().order_by('-created_at')
-    template_data = {
-        'title': 'Movie Petitions',
-        'petitions': petitions,
-    }
-    return render(request, 'movies/petition_list.html', {'template_data': template_data})
 
-@login_required
-def create_petition(request):
-    if request.method == 'POST':
-        form = PetitionForm(request.POST)
-        if form.is_valid():
-            petition = form.save(commit=False)
-            petition.created_by = request.user
-            petition.save()
-            return redirect('movies.petition_list')
-    else:
-        form = PetitionForm()
-    template_data = {'title': 'Create a Petition', 'form': form}
-    return render(request, 'movies/create_petition.html', {'template_data': template_data})
-
-@login_required
-def vote_petition(request, petition_id):
-    petition = get_object_or_404(Petition, id=petition_id)
-    if petition.voters.filter(id=request.user.id).exists():
-        # User has already voted, so we can remove the vote (or just do nothing)
-        petition.voters.remove(request.user)
-    else:
-        petition.voters.add(request.user)
-    return redirect('movies.petition_list')
