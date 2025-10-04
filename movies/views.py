@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review, HiddenMovie
+from .models import Movie, Review, HiddenMovie, Petition
+from .forms import PetitionForm
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 # Create your views here.
@@ -86,4 +87,36 @@ def hidden_list(request):
     return render(request, 'movies/hidden.html', {'template_data': template_data})
 
 
+@login_required
+def petition_list(request):
+    petitions = Petition.objects.all().order_by('-created_at')
+    template_data = {
+        'title': 'Petitions',
+        'petitions': petitions,
+    }
+    return render(request, 'movies/petition_list.html', {'template_data': template_data})
+@login_required
+def create_petition(request):
+    if request.method == 'POST':
+        form = PetitionForm(request.POST)
+        if form.is_valid():
+            petition = form.save(commit=False)
+            petition.created_by = request.user
+            petition.save()
+            return redirect('movies.petition_list')
+    else:
+        form = PetitionForm()
+    template_data = {
+        'title': 'Create Petition',
+        'form': form,
+    }
+    return render(request, 'movies/create_petition.html', {'template_data': template_data})
 
+@login_required
+def vote_petition(request, petition_id):
+    petition = get_object_or_404(Petition, id=petition_id)
+    if request.user in petition.voters.all():
+        petition.voters.remove(request.user)
+    else:
+        petition.voters.add(request.user)
+    return redirect('movies.petition_list')

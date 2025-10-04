@@ -36,3 +36,15 @@ class HiddenMovie(models.Model):
         return f"{self.user.username} hidden {self.movie.name}"
 
 
+class Petition(models.Model):
+    movie_title = models.CharField(max_length=255)
+    reason = models.TextField()
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    voters = models.ManyToManyField(User, related_name='voted_petitions', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Petition for {self.movie_title}"
+    @property
+    def vote_count(self):
+        return self.voters.count()
